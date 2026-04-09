@@ -1,0 +1,13 @@
+{
+  "version": "1.7.0",
+  "milestone": "Vite 8 + Tailwind 4.2 + Node 24.14.0 LTS",
+  "date": "2026-03-21",
+  "description": "Upgraded Vite to ^8.0.1, @vitejs/plugin-react to ^6.0.1, Tailwind to ^4.2.2, @tailwindcss/vite to ^4.2.2, jsPDF to ^4.2.1, nodemailer to ^8.0.3, @types/react to ^19.2.14, @types/react-dom to ^19.2.3. Removed postcss and autoprefixer (redundant with Tailwind v4 Vite plugin). Pinned Node.js to 24.14.0 LTS in netlify.toml and package.json engines. Updated contact email to ameristarschool@yahoo.com and added second phone number (310) 377-0337. Fixed About.tsx typo. Fixed both phone numbers to have independent tel: links.",
+  "status": "stable",
+  "breaking_changes": "none",
+  "react_version": "19.2.4",
+  "vite_version": "^8.0.1",
+  "lucide_react_version": "^0.577.0",
+  "tailwind_version": "^4.2.2",
+  "node_version": ">=24.14.0"
+}

@@ -1,0 +1,51 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "24.14.0"
+
+[functions]
+  directory = "netlify/functions"
+
+
+# ── Security Headers ───────────────────────────────────────────────────────────
+# Applied to every response served by Netlify.
+#
+# What each header does:
+#   X-Frame-Options          — blocks clickjacking (no one can iframe this site)
+#   X-Content-Type-Options   — stops MIME-type sniffing attacks
+#   Referrer-Policy          — limits URL info sent to third parties (GA still works)
+#   Permissions-Policy       — disables camera/mic/geolocation APIs (site uses none)
+#   Strict-Transport-Security — forces HTTPS for 2 years; prevents SSL stripping
+#   Content-Security-Policy  — controls exactly which scripts/styles/images/frames
+#                              are permitted. Accounts for every external resource
+#                              this site uses: GA, Google Fonts, Cloudflare Turnstile,
+#                              FormBold, transparenttextures.com, and data: favicon URIs.
+#
+# NOTE: 'unsafe-inline' is required in script-src and style-src because:
+#   • script-src: GA setup and animated favicon are inline <script> blocks in index.html
+#   • style-src:  React inline style={{ }} props are used in Navigation, Contact,
+#                 Enrollment, and PandaGame components
+# These can be tightened in a future refactor by moving inline scripts to .js files
+# and replacing inline styles with Tailwind classes.
+# ──────────────────────────────────────────────────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options            = "DENY"
+    X-Content-Type-Options     = "nosniff"
+    Referrer-Policy            = "strict-origin-when-cross-origin"
+    Permissions-Policy         = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security  = "max-age=63072000; includeSubDomains; preload"
+    Content-Security-Policy    = "default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.transparenttextures.com; frame-src https://challenges.cloudflare.com; connect-src 'self' https://www.google-analytics.com; form-action 'self' https://formbold.com; object-src 'none'; base-uri 'self';"
+
+# ── SPA Catch-all Redirect ─────────────────────────────────────────────────────
+# Netlify serves files from /dist directly. Any path that doesn't match a real
+# file (e.g. /bogus-url) would return Netlify's default 404 without this rule.
+# status = 200 means "serve index.html but keep the original URL in the browser"
+# — React's getPageFromUrl() then reads the URL and renders the custom NotFound page.
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

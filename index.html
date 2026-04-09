@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Base SEO Defaults (Will be overwritten by React per page) -->
+    <title>Ameristar School | CA Real Estate & Insurance Licensing</title>
+    <meta name="description" content="Premier CA licensing school for Real Estate (DRE) and Insurance (DOI). Pre-licensing exams, continuing education, and broker certification." />
+    <meta name="keywords" content="CA licensing, CA real estate, CA DRE, CA DOI, CA insurance exams" />
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ameristar School" />
+    <meta property="og:title" content="Ameristar School | CA Real Estate & Insurance Licensing" />
+    <meta property="og:description" content="Premier CA licensing school for Real Estate (DRE) and Insurance (DOI). Pre-licensing exams, continuing education, and broker certification." />
+    <meta property="og:image" content="https://ameristarschool.com/hero1-highrise.jpg" />
+
+    <!-- Structured Data (JSON-LD) for Google Organization Recognition -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "Ameristar School",
+      "description": "A high-end educational resource platform for aspiring insurance and real estate professionals in California.",
+      "areaServed": "California",
+      "url": "https://ameristarschool.com",
+      "address": {
+        "@type": "PostalAddress",
+        "addressRegion": "CA",
+        "addressCountry": "US"
+      }
+    }
+    </script>
+
+    <!-- ── Google Analytics 4 (Measurement ID: G-P3HK24ZZ2M) ──────────────
+         Tracks page views, user sessions, and navigation across the site.
+         SPA page_view events are fired from App.tsx on each route change.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <!-- ── Cloudflare Turnstile Bot Protection ──────────────────────────────
+         Loads the Turnstile widget library. The widget itself is rendered
+         inside Enrollment.tsx near the submit button.
+         No Site Key is needed here — this is just the generic script loader.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-P3HK24ZZ2M"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-P3HK24ZZ2M');
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+    <!-- ── Animated Favicon (Change 15) ────────────────────────────────────
+         Active tab: pulsing gold star favicon (SVG, animated).
+         Hidden tab: swaps to a glowing gold "A" with a nudge emoji prefix in
+         the title — draws the user's eye back when they glance at their tab bar.
+         Restores normal title when tab becomes active again.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23001A35'/%3E%3Ctext x='32' y='44' font-family='Georgia%2C serif' font-size='36' font-weight='bold' fill='%23D4AF37' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E" />
+    <script>
+      (function() {
+        var ACTIVE_FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23001A35'/%3E%3Ctext x='32' y='44' font-family='Georgia%2C serif' font-size='36' font-weight='bold' fill='%23D4AF37' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E";
+        var PULSE_FAVICON  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23D4AF37'/%3E%3Ctext x='32' y='44' font-family='Georgia%2C serif' font-size='36' font-weight='bold' fill='%23001A35' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E";
+        var HIDDEN_FAVICON  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23D4AF37'/%3E%3Ccircle cx='32' cy='32' r='20' fill='%23001A35'/%3E%3Ctext x='32' y='44' font-family='Georgia%2C serif' font-size='36' font-weight='bold' fill='%23D4AF37' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E";
+        var baseTitle = document.title;
+        var favicon   = document.getElementById('favicon');
+        var pulseInterval = null;
+        var isPulsed = false;
+
+        // Pulse the favicon every 2s while the tab is active
+        function startPulse() {
+          if (pulseInterval) return;
+          pulseInterval = setInterval(function() {
+            favicon.href = isPulsed ? ACTIVE_FAVICON : PULSE_FAVICON;
+            isPulsed = !isPulsed;
+          }, 2000);
+        }
+
+        function stopPulse() {
+          clearInterval(pulseInterval);
+          pulseInterval = null;
+          isPulsed = false;
+        }
+
+        // Title cycling when hidden — rotates through attention-grabbing prefixes
+        var hiddenMessages = [
+          '👋 Come back! — Ameristar School',
+          '✨ Your future starts here — Ameristar School',
+          '🎓 Still here for you — Ameristar School',
+          '⭐ Don't miss out — Ameristar School',
+        ];
+        var msgIndex = 0;
+        var titleInterval = null;
+
+        document.addEventListener('visibilitychange', function() {
+          if (document.hidden) {
+            stopPulse();
+            favicon.href = HIDDEN_FAVICON;
+            titleInterval = setInterval(function() {
+              document.title = hiddenMessages[msgIndex % hiddenMessages.length];
+              msgIndex++;
+            }, 2500);
+          } else {
+            clearInterval(titleInterval);
+            titleInterval = null;
+            msgIndex = 0;
+            document.title = baseTitle;
+            favicon.href = ACTIVE_FAVICON;
+            startPulse();
+          }
+        });
+
+        // Start pulsing on load
+        startPulse();
+      })();
+    </script>
+
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-paper text-obsidian">
+    <div id="root"></div>
+  <!-- IMPORTANT: React is bundled by Vite. Do not add React CDN scripts here. -->
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

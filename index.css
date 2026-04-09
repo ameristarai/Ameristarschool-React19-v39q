@@ -1,0 +1,172 @@
+/*
+ * index.css
+ * Tailwind v4 is loaded through the official Vite plugin.
+ * We keep the existing JavaScript config file alive with @config so custom
+ * colors, fonts, spacing, and animations continue to work without a redesign.
+ */
+@import "tailwindcss";
+@config "./tailwind.config.js";
+
+/* ── Global base styles ─────────────────────────────────────────────────────
+   Moved here from the inline <style> block in index.html.
+   Tailwind's base layer resets these if not explicitly set, so we add them
+   back as globals here.
+*/
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar — WebKit only */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+@layer base {
+  /* Preserve v3-ish placeholder styling for the enrollment/contact forms. */
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  /* Keep buttons feeling clickable after v4 Preflight changes. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* ── Mobile video pan animation ─────────────────────────────────────────────
+   On mobile only: holds on the students (center) for ~2s, then eases left
+   to the instructor (15%) over ~1.5s, then holds for the rest of the loop.
+   Timed to the 8-second video duration. Runs once; stays on instructor.
+   Desktop (md: 768px+) is unaffected — no class applied there.
+─────────────────────────────────────────────────────────────────────────── */
+/* translateX pan — shifts video rightward at start (showing students),
+   slides left to 0 (revealing instructor at object-position 15%).
+   transform is GPU-composited on all browsers; object-position is not. */
+@keyframes panToInstructor {
+  0%   { transform: translateX(50%); }
+  100% { transform: translateX(0);   }
+}
+
+@media (max-width: 767px) {
+  .video-pan-mobile {
+    animation: panToInstructor 8s ease-in-out 1 forwards;
+  }
+}
+
+/* ── Spotlight button effect ─────────────────────────────────────────────────
+   Tracks the cursor position within any .btn-spotlight element via CSS custom
+   properties --bx / --by (set by useSpotlightEffect() in Navigation.tsx).
+   The glow is a ::before pseudo-element — no DOM changes, no layout impact,
+   GPU-composited via opacity transition.
+
+   .btn-spotlight      — warm white radial glow (for dark/navy buttons)
+   .btn-spotlight-gold — gold-tinted radial glow (for the gold Enroll Now button,
+                         visible against both the gold resting state AND the white
+                         hover state since gold contrasts against both)
+
+   Requirements on the host element:
+     • position: relative  (already true for all buttons with overflow-hidden)
+     • overflow: hidden    (add to button; clips the glow to the button shape)
+─────────────────────────────────────────────────────────────────────────── */
+.btn-spotlight {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle 120px at var(--bx, 50%) var(--by, 50%),
+    rgba(255, 255, 255, 0.70) 0%,
+    rgba(255, 255, 255, 0.25) 40%,
+    transparent 75%
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.20s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.btn-spotlight:hover::before {
+  opacity: 1;
+}
+
+/* Gold-tinted variant — used on the gold Enroll Now button.
+   Bright white hot-spot at center fading to gold, visible against
+   both the gold resting state and the white hover state. */
+.btn-spotlight-gold::before {
+  background: radial-gradient(
+    circle 120px at var(--bx, 50%) var(--by, 50%),
+    rgba(255, 255, 255, 0.80) 0%,
+    rgba(255, 220, 100, 0.45) 40%,
+    transparent 75%
+  );
+}
+
+/* ── Huly-style dark button with gradient border + glow ─────────────────────
+   Applied to "Enroll Now" whenever the nav background is dark —
+   both when scrolled (isScrolled=true) AND when the nav is hovered.
+
+   GRADIENT BORDER via -webkit-mask (::before):
+     Fills pseudo-element with the left→right gradient, then masks out the
+     content-box leaving only the 2px border ring visible.
+     Left: nearly invisible warm gray → building coral → vivid orange →
+     pure white flash at the right edge (identical to Huly's gradient stops).
+
+   GLOW HALO via box-shadow (on :hover):
+     Three stacked shadows create the layered ember aura —
+     close-in coral, mid-range bright orange, outer deep burnt red.
+     box-shadow is 100% reliable across all browsers.
+─────────────────────────────────────────────────────────────────────────── */
+.btn-huly {
+  position: relative;
+  background: #090a0c;
+  color: #ffffff;
+  transition: box-shadow 0.35s ease, transform 0.15s ease;
+}
+
+/* 2px gradient border ring — visible immediately when button is dark */
+.btn-huly::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  padding: 2px;
+  background: linear-gradient(
+    103.7deg,
+    rgba(188, 166, 156, 0.25) 38.66%,
+    rgba(233, 132,  99, 0.65) 68.55%,
+    #e98463                   85.01%,
+    #ffffff                   92.12%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Layered warm ember glow on hover */
+.btn-huly:hover {
+  box-shadow:
+    0 0  8px  3px rgba(233, 132,  99, 0.75),
+    0 0 20px  8px rgba(255, 121,  80, 0.55),
+    0 0 40px 15px rgba(205,  49,   0, 0.35);
+}
