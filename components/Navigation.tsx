@@ -27,11 +27,12 @@ const Navigation = ({ currentPage, onNavigate }: NavigationProps) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ── Spotlight effect — delegated pointermove for .btn-spotlight buttons ───
-  // One listener covers all spotlight buttons on every page.
+  // ── Spotlight effect — delegated pointermove for spotlight buttons ────────
+  // One listener covers .btn-spotlight (gold light-state pill) AND .btn-huly
+  // (dark scrolled/hovered pill). Both pseudo-elements read --bx / --by.
   useEffect(() => {
     const handleSpotlight = (e: PointerEvent) => {
-      const btn = (e.target as Element).closest('.btn-spotlight') as HTMLElement | null;
+      const btn = (e.target as Element).closest('.btn-spotlight, .btn-huly') as HTMLElement | null;
       if (!btn) return;
       const rect = btn.getBoundingClientRect();
       btn.style.setProperty('--bx', `${e.clientX - rect.left}px`);

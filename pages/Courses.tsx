@@ -104,7 +104,7 @@ const SelectionView = ({ onSelect }: { onSelect: (type: 'insurance' | 'real-esta
             
             {/* Image with Grayscale -> Color transition */}
             <img 
-              src="https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&q=80&w=1600" 
+              src="/photo-1542718610-a1d656d1884c.jpg"
               alt="Luxury Craftsman Home with Mountains" 
               className="w-full h-96 object-cover transform grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000 ease-in-out"
             />
@@ -133,7 +133,7 @@ const SelectionView = ({ onSelect }: { onSelect: (type: 'insurance' | 'real-esta
             
             {/* Image with Grayscale -> Color transition */}
             <img 
-              src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1600" 
+              src="/photo-1554224155-8d04cb21cd6c.jpg"
               alt="Insurance Professional" 
               className="w-full h-96 object-cover transform grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000 ease-in-out"
             />
@@ -246,8 +246,8 @@ const CourseListView = ({ title, subtitle, description, courses, onBack, onNavig
 
               <button className={`w-full py-4 rounded-xl font-medium tracking-wide transition-all ${
                 course.isPopular 
-                  ? 'bg-champagne text-white hover:bg-[#b58f55] shadow-md hover:shadow-lg' 
-                  : 'bg-gray-50 text-obsidian hover:bg-champagne hover:text-white shadow-none hover:shadow-lg'
+                  ? 'btn-spotlight bg-champagne text-white hover:bg-[#b58f55] shadow-md hover:shadow-lg' 
+                  : 'btn-spotlight bg-gray-50 text-obsidian hover:bg-champagne hover:text-white shadow-none hover:shadow-lg'
               }`}
                 onClick={() => onNavigate(Page.Enrollment)}
               >
