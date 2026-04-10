@@ -161,6 +161,12 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
     doc.setTextColor(...GOLD);
     doc.text('School', ML + ameristarWidth + 1.5, 13);
 
+    // Task 2: School address — subtle small line below school name inside header bar
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(180, 160, 100);  // muted gold — readable but not prominent
+    doc.text('120 S. Del Mar Ave, Unit 1143, San Gabriel, CA 91778', ML, 19);
+
     // Gold divider line below bar
     doc.setDrawColor(...GOLD);
     doc.setLineWidth(0.6);
@@ -173,6 +179,13 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
     doc.text('ENROLLMENT APPLICATION', PW - MR, 13, { align: 'right' });
 
     y = 30;
+  };
+
+  // Task 4: Convert ISO date yyyy-mm-dd → mm-dd-yyyy for PDF display
+  const fmtDate = (iso: string): string => {
+    const parts = iso.split('-');
+    if (parts.length !== 3) return iso;
+    return `${parts[1]}-${parts[2]}-${parts[0]}`;
   };
 
   /** Draw the branded page footer. */
@@ -344,7 +357,7 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(...MID);
-  doc.text(`Date of Application: ${data.date}`, PW / 2, y, { align: 'center' });
+  doc.text(`Date of Application: ${fmtDate(data.date)}`, PW / 2, y, { align: 'center' });
   y += 5;
   doc.setFontSize(7.5);
   doc.text('DRE Pre-License Sponsor #: [SPONSOR NUMBER]  ·  CE Sponsor #: [CE SPONSOR NUMBER]', PW / 2, y, { align: 'center' });
@@ -792,7 +805,7 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(...DARK);
-  doc.text(data.date, ML + CW * 0.65, y + 3);
+  doc.text(fmtDate(data.date), ML + CW * 0.65, y + 3);
 
   // Underlines
   doc.setDrawColor(...DARK);
