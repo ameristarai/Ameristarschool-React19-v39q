@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Send, CheckCircle, Loader2, AlertCircle, Info, BookOpen, Clock } from 'lucide-react';
 import SEO from '../components/SEO';
@@ -66,6 +66,51 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
   const [submitError, setSubmitError]   = useState<string | null>(null);
   // Tracks email delivery failure separately from PDF success
   const [emailWarning, setEmailWarning] = useState<boolean>(false);
+
+  // ── Cloudflare Turnstile ──────────────────────────────────────────────────
+  // turnstileRef holds the container div. widgetId lets us call reset() on
+  // failed submissions so the student can retry without refreshing the page.
+  // The widget is invisible to real users (Managed mode — no puzzle shown).
+  // ⚠️  IMPORTANT: Replace PLACEHOLDER_SITE_KEY below with your actual
+  //     Cloudflare Turnstile Site Key before deploying.
+  //     Site Key is obtained from: Cloudflare Dashboard → Turnstile → your site.
+  //     Secret Key goes in Netlify env vars as TURNSTILE_SECRET_KEY (not here).
+  const TURNSTILE_SITE_KEY = '0x4AAAAAAC2ljG632X4yRg2V';  // ⚠️ REPLACE THIS
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef  = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Render the Turnstile widget once the component mounts and the
+    // Cloudflare script has loaded. The widget is invisible to real users.
+    const renderWidget = () => {
+      if (
+        turnstileRef.current &&
+        widgetIdRef.current === null &&
+        typeof window !== 'undefined' &&
+        (window as any).turnstile
+      ) {
+        widgetIdRef.current = (window as any).turnstile.render(turnstileRef.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          appearance: 'interaction-only',
+	  execution: 'render',
+        });
+      }
+    };
+
+    // Script may already be loaded, or may still be loading
+    if ((window as any).turnstile && turnstileRef.current) {
+    renderWidget();
+    } else {
+      // Poll every 50ms until BOTH the script AND the ref div are ready
+      const interval = setInterval(() => {
+        if ((window as any).turnstile && turnstileRef.current) {
+          renderWidget();
+          clearInterval(interval);
+        }
+      }, 50);
+      return () => clearInterval(interval);
+    }
+  }, []);
 
   // Pricing
   const COURSE_PRICE        = 100;  // Default fallback: NMLS courses
@@ -209,7 +254,7 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
     setSubmitError(null);
     setEmailWarning(false);
 
-    // ── Step 1: Generate PDF ─────────────────────────────────────────────────
+    // ── Step 1: Generate PDF ──────────────────────────────────────────────────
     // PDF generation is synchronous and happens entirely in the browser.
     // It cannot be affected by Gmail or network issues. We run it first so
     // the student always gets their copy regardless of what happens next.
@@ -235,20 +280,29 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
         { courseSubtotal, registrationFee: REGISTRATION_FEE, materialsSubtotal: 0, shippingSubtotal: 0, grandTotal: grandTotalForPDF, ccFee: ccFeeForPDF }
       );
 
-      fileName = `Ameristar-Enrollment-${formData.fullName.replace(/\s+/g, '-')}.pdf`;
+      // Task 3: filename format → Ameristar-<mm-dd-yyyy>-<first-name>.pdf
+      const [yyyy, mm, dd] = formData.date.split('-');
+      const dateStr  = `${mm}-${dd}-${yyyy}`;
+      const firstName = formData.fullName.trim().split(/\s+/)[0];
+      fileName = `Ameristar-${dateStr}-${firstName}.pdf`;
       doc.save(fileName);  // ← student download — always succeeds
 
+      // jsPDF returns a Data URI like: "data:application/pdf;base64,JVBERi0..."
       const pdfDataUri = doc.output('datauristring');
       pdfBase64 = pdfDataUri.split(',')[1] || '';
 
     } catch (pdfErr) {
-      // PDF generation itself failed — very rare (memory/browser issue)
+      // PDF generation itself failed — very rare (memory/browser issue).
+      // Reset Turnstile so the student can retry without refreshing the page.
+      if (widgetIdRef.current !== null && (window as any).turnstile) {
+        (window as any).turnstile.reset(widgetIdRef.current);
+      }
       setSubmitError('Could not generate your PDF. Please try again or contact us directly.');
       setIsSubmitting(false);
       return;
     }
 
-    // ── Step 2: Email the PDF to the school ─────────────────────────────────
+    // ── Step 2: Email the PDF to the school ───────────────────────────────────
     // This step is intentionally decoupled from Step 1.
     // If email fails, the student still sees the success screen (PDF downloaded)
     // but with a prominent warning telling them to contact the school directly.
@@ -262,6 +316,12 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
           fileName,
           studentName: formData.fullName,
           studentEmail: formData.email || '',
+          // Turnstile token — the backend verifies this server-side.
+          // Empty string when TURNSTILE_SITE_KEY is still a placeholder
+          // (backend skips verification if TURNSTILE_SECRET_KEY is not set).
+          turnstileToken: (widgetIdRef.current !== null && (window as any).turnstile)
+            ? (window as any).turnstile.getResponse(widgetIdRef.current)
+            : '',
         }),
       });
 
@@ -281,14 +341,13 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
       console.warn('send-application fetch error:', networkErr);
     }
 
-    // ── Step 3: Navigate to success screen ───────────────────────────────────
+    // ── Step 3: Navigate to success screen ────────────────────────────────────
     // Always show success (PDF was downloaded). If email failed, show warning.
     if (!emailDelivered) {
       setEmailWarning(true);
     }
     setSubmitted(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-
     setIsSubmitting(false);
   };
 
@@ -342,7 +401,7 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
 
           <button
             onClick={() => onNavigate(Page.Home)}
-            className="btn-spotlight inline-block bg-obsidian text-white px-8 py-3 rounded-full uppercase tracking-widest text-xs font-bold hover:bg-champagne transition-colors"
+            className="inline-block bg-obsidian text-white px-8 py-3 rounded-full uppercase tracking-widest text-xs font-bold hover:bg-champagne transition-colors"
           >
             Return Home
           </button>
@@ -587,7 +646,7 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
                         checked={formData.selectedCourses.includes('re-property-mgmt')} onChange={() => toggleCourse('re-property-mgmt')} />
                       <Checkbox label="Real Estate Economics" subLabel="45h ($99)"
                         checked={formData.selectedCourses.includes('re-economics')} onChange={() => toggleCourse('re-economics')} />
-                      <Checkbox label="Practice Exams" subLabel="($150?)"
+                      <Checkbox label="Practice Exams" subLabel="($150)"
                         subLabelClassName="text-xs text-gray-400 mt-1"
                         checked={formData.selectedCourses.includes('re-practice-exams')} onChange={() => toggleCourse('re-practice-exams')} />
                     </div>
@@ -612,13 +671,14 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
                           <p className="text-xs text-amber-700 leading-relaxed">
                             Completing this enrollment form is <strong>not sufficient</strong> for the DRE 45-Hour CE Package. You must also complete and submit the{' '}
                             <strong>DRE Final Exam Application</strong> (wet signature required) available on our{' '}
-                            <button
-                              type="button"
-                              onClick={() => onNavigate(Page.Forms)}
+                            <a
+                              href="/dre-exam-application.pdf"
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="underline font-semibold hover:text-amber-900 transition-colors"
                             >
-                              Forms page
-                            </button>.
+                              DRE Final Exam Application
+                            </a>.
                             Fill in your name, address, phone number, then sign and date. Your proctor will handle submission.
                           </p>
                         </div>
@@ -633,9 +693,9 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
               <div>
                 <h3 className="text-sm font-bold text-oxford uppercase tracking-widest border-b border-gray-100 pb-2 mb-6">NMLS Certification</h3>
                 <div className="grid md:grid-cols-2 gap-4">
-                  <Checkbox label="20-Hr Pre-Licensing" subLabel="Required · 20h"
+                  <Checkbox label="20-Hr Pre-Licensing" subLabel="Required · 20h ($100)"
                     checked={formData.selectedCourses.includes('nmls-20')} onChange={() => toggleCourse('nmls-20')} />
-                  <Checkbox label="8-Hr Annual CE" subLabel="Renewal · 8h"
+                  <Checkbox label="8-Hr Annual CE" subLabel="Renewal · 8h ($100)"
                     checked={formData.selectedCourses.includes('nmls-8')} onChange={() => toggleCourse('nmls-8')} />
                 </div>
               </div>
@@ -795,6 +855,22 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
             </div>
           </div>
 
+          {/* ── Bot protection elements ────────────────────────────────────────
+               Honeypot: hidden input invisible to humans. Bots fill it in;
+               the backend silently discards those submissions.
+               Turnstile: invisible widget div — Cloudflare handles verification
+               without showing a puzzle to real users.
+          ────────────────────────────────────────────────────────────────── */}
+          <input
+            type="text"
+            name="company"
+            autoComplete="off"
+            tabIndex={-1}
+            aria-hidden="true"
+            style={{ display: 'none' }}
+          />
+          <div ref={turnstileRef} />
+
           {/* Submit bar */}
           <div className="flex flex-col items-center gap-4 pt-4">
 
@@ -860,7 +936,7 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
             <button
               type="submit"
               disabled={isSubmitting || !isSubmitEnabled}
-              className="btn-spotlight bg-obsidian text-white px-12 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-champagne transition-all shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-3"
+              className="bg-obsidian text-white px-12 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-champagne transition-all shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-3"
             >
               {isSubmitting
                 ? <><Loader2 className="animate-spin" size={18} /> Processing...</>
