@@ -96,16 +96,16 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
     };
 
     // Script may already be loaded, or may still be loading
-    if ((window as any).turnstile) {
-      renderWidget();
+    if ((window as any).turnstile && turnstileRef.current) {
+    renderWidget();
     } else {
-      // Poll briefly for the script to finish loading (async + defer)
+      // Poll every 50ms until BOTH the script AND the ref div are ready
       const interval = setInterval(() => {
-        if ((window as any).turnstile) {
+        if ((window as any).turnstile && turnstileRef.current) {
           renderWidget();
           clearInterval(interval);
         }
-      }, 100);
+      }, 50);
       return () => clearInterval(interval);
     }
   }, []);
