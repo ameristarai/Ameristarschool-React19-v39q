@@ -189,33 +189,34 @@ export const handler = async (event) => {
 
     // ── NEW: Turnstile bot verification — opt-in via env var ─────────────
     // Only active if TURNSTILE_SECRET_KEY is set in Netlify environment.
-    // If the env var is absent, this block is skipped entirely — no impact
-    // on existing submissions. To enable: set TURNSTILE_SECRET_KEY in
-    // Netlify and add the Turnstile widget to Enrollment.tsx (see docs).
+    // If the env var is absent, this block is skipped entirely.
+    //
+    // Token is OPTIONAL: if absent or expired (tokens expire after 300 seconds,
+    // a real risk on a long enrollment form), we log and fall through. The
+    // honeypot + rate limiter already cover bot abuse. Only a present token
+    // that actively fails Cloudflare verification is hard-rejected.
     if (process.env.TURNSTILE_SECRET_KEY) {
       const token = body.turnstileToken;
       if (!token) {
-        return {
-          statusCode: 403,
-          headers: corsHeaders,
-          body: JSON.stringify({ error: 'Bot verification token missing.' }),
-        };
-      }
-      const verify = await fetch(
-        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `secret=${process.env.TURNSTILE_SECRET_KEY}&response=${encodeURIComponent(token)}`,
+        // Token missing or expired — warn in logs but do not block the student
+        console.warn('Turnstile token absent or expired — skipping verification.');
+      } else {
+        const verify = await fetch(
+          'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `secret=${process.env.TURNSTILE_SECRET_KEY}&response=${encodeURIComponent(token)}`,
+          }
+        );
+        const result = await verify.json();
+        if (!result.success) {
+          return {
+            statusCode: 403,
+            headers: corsHeaders,
+            body: JSON.stringify({ error: 'Bot verification failed. Please try again.' }),
+          };
         }
-      );
-      const result = await verify.json();
-      if (!result.success) {
-        return {
-          statusCode: 403,
-          headers: corsHeaders,
-          body: JSON.stringify({ error: 'Bot verification failed. Please try again.' }),
-        };
       }
     }
 
