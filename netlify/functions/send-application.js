@@ -179,6 +179,7 @@ export const handler = async (event) => {
 
     // ── Existing: PDF validation ─────────────────────────────────────────
     const pdfBuffer = toPdfBuffer(pdfBase64);
+    console.log('send-application: pdfBuffer valid =', !!pdfBuffer);
     if (!pdfBuffer) {
       return {
         statusCode: 400,
@@ -197,6 +198,7 @@ export const handler = async (event) => {
     // that actively fails Cloudflare verification is hard-rejected.
     if (process.env.TURNSTILE_SECRET_KEY) {
       const token = body.turnstileToken;
+      console.log('send-application: turnstileToken present =', !!token);
       if (!token) {
         // Token missing or expired — warn in logs but do not block the student
         console.warn('Turnstile token absent or expired — skipping verification.');
@@ -271,6 +273,7 @@ export const handler = async (event) => {
     });
 
     // ── Existing: success response ────────────────────────────────────────
+    console.log('send-application: email sent successfully to', DESTINATION_EMAIL);
     return {
       statusCode: 200,
       headers: corsHeaders,
