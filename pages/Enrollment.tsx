@@ -89,7 +89,8 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
       ) {
         widgetIdRef.current = (window as any).turnstile.render(turnstileRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
-          size: 'invisible',
+          appearance: 'interaction-only',
+	  execution: 'render',
         });
       }
     };
