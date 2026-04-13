@@ -793,7 +793,7 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
               <div className="p-3 bg-white border border-gray-200 rounded-lg">
                 <h4 className="font-bold uppercase text-obsidian text-sm border-b border-gray-200 pb-2 mb-2">DRE Course Approval Statement</h4>
                 <p className="italic">This course is approved for pre-license education credit by the California Department of Real Estate. However, this approval does not constitute an endorsement of the views or opinions which are expressed by the course sponsor, instructors, authors, or lecturers.</p>
-                <p className="mt-2 text-gray-400">DRE Pre-License Sponsor #: <span className="font-semibold text-obsidian">[SPONSOR NUMBER]</span> &nbsp;·&nbsp; CE Sponsor #: <span className="font-semibold text-obsidian">[CE SPONSOR NUMBER]</span></p>
+                <p className="mt-2 text-gray-400">DRE Sponsor #: <span className="font-semibold text-obsidian">S0684</span></p>
               </div>
 
               <h4 className="font-bold uppercase text-obsidian text-sm border-b border-gray-200 pb-2">Student's Right to Cancel</h4>
