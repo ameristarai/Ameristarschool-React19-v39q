@@ -533,7 +533,7 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
   //   Total(9) + divider+gap(10) + Payment label(6) + Payment value(6) + bottom(6)
   //   CC fee adds 14mm (summary row 7.5 + disclosure line 6 + rounding 0.5)
   const hasCcFee = !!(totals.ccFee && totals.ccFee > 0);
-  const boxH = hasCcFee ? 76 : 62;
+  const boxH = hasCcFee ? 56 : 47;  // tightened to match actual content height
   checkPage(boxH + 4, pageNum);
   doc.setFillColor(...LIGHT);
   doc.rect(ML, y, CW, boxH, 'F');
@@ -557,30 +557,30 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
   summaryRow('TOTAL DUE', totals.grandTotal, true, pageNum);
 
   // Payment Method — drawn inside the box, separated by a light rule
-  y += 4;
+  y += 1;  // minimal gap before divider
   doc.setDrawColor(...MID);
   doc.setLineWidth(0.2);
   doc.line(ML + 4, y, PW - MR - 4, y);
-  y += 6;
+  y += 4;  // gap after divider to PAYMENT METHOD label
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(...GOLD);
   doc.text('PAYMENT METHOD', ML + 4, y);
-  y += 6;
+  y += 5;  // label to value
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9.5);
   doc.setTextColor(...DARK);
   doc.text(PAYMENT_LABELS[data.paymentMethod] || data.paymentMethod, ML + 4, y);
-  y += 6;
+  y += 4;  // value to disclosure or bottom
   // Change 10: CC fee disclosure line in PDF
   if (totals.ccFee && totals.ccFee > 0) {
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7.5);
     doc.setTextColor(...MID);
     doc.text('A 3.5% credit card processing fee of $' + totals.ccFee.toFixed(2) + ' has been applied to the total above.', ML + 4, y);
-    y += 6;
+    y += 2;  // after CC disclosure
   }
-  y += 6;
+  y += 2;  // bottom padding
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SECTION 4: Agreement & Signature
