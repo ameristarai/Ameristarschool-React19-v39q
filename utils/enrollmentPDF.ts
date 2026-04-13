@@ -716,7 +716,7 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
   ];
 
   // Heights per element (mm)
-  const LINE_H    = 4.5;   // body line height
+  const LINE_H    = 6.0;   // body line height — increased from 4.5 to give descenders (g,j,p,q,y) clearance
   const HEAD_H    = 5.5;   // heading row height (bold, slightly taller)
   const GAP_H     = 3;     // gap between clauses
   const PAD_L     = 5;     // text left pad inside stripe
@@ -726,10 +726,10 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
   /** Draw a single horizontal stripe (background + gold left bar) at current y for rowH mm. */
   const drawStripe = (rowH: number) => {
     doc.setFillColor(...LIGHT);
-    doc.rect(STRIPE_X, y - 1, STRIPE_W, rowH + 1, 'F');
+    doc.rect(STRIPE_X, y, STRIPE_W, rowH, 'F');   // no top overlap — prevents next stripe from clipping descenders
     doc.setDrawColor(...GOLD);
     doc.setLineWidth(0.5);
-    doc.line(STRIPE_X, y - 1, STRIPE_X, y + rowH);
+    doc.line(STRIPE_X, y, STRIPE_X, y + rowH);
   };
 
   policyClauses.forEach((clause, clauseIdx) => {
@@ -760,7 +760,7 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.8);
       doc.setTextColor(...DARK);
-      doc.text(line, STRIPE_X + PAD_L, y + LINE_H - 1.2);
+      doc.text(line, STRIPE_X + PAD_L, y + LINE_H - 2.0);  // baseline raised to give descenders clearance below
       y += LINE_H;
     });
 
