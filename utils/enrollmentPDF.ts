@@ -528,12 +528,12 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
   }
   sectionHeader('03 · Payment Summary', pageNum);
 
-  // Light background box — height is dynamic:
-  //   Base 62mm covers: top pad(4) + Courses(7.5) + Reg Fee(7.5) + gap(2) +
-  //   Total(9) + divider+gap(10) + Payment label(6) + Payment value(6) + bottom(6)
-  //   CC fee adds 14mm (summary row 7.5 + disclosure line 6 + rounding 0.5)
+  // Light background box — height matches actual content:
+  //   Zelle 47mm: pad(4) + Courses(7.5) + RegFee(7.5) + gap(2) + Total(9) +
+  //               pre-divider(1) + post-divider(4) + label(5) + value(4) + bottom(2) = 46mm + 1mm buffer
+  //   CC    56mm: same + CCFeeRow(7.5) + disclosure(2) = 55.5mm + 0.5mm buffer
   const hasCcFee = !!(totals.ccFee && totals.ccFee > 0);
-  const boxH = hasCcFee ? 56 : 47;  // tightened to match actual content height
+  const boxH = hasCcFee ? 56 : 47;
   checkPage(boxH + 4, pageNum);
   doc.setFillColor(...LIGHT);
   doc.rect(ML, y, CW, boxH, 'F');
@@ -669,20 +669,23 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
   ];
 
   // Heights per element (mm)
-  const LINE_H    = 6.0;   // body line height — increased from 4.5 to give descenders (g,j,p,q,y) clearance
+  const LINE_H    = 4.0;   // single-line spacing for 7.8pt font (~1.45× em) — text sits at y+2.5 so descenders (y+3.33) have 0.67mm clearance before stripe bottom (y+4.0)
   const HEAD_H    = 5.5;   // heading row height (bold, slightly taller)
   const GAP_H     = 3;     // gap between clauses
   const PAD_L     = 5;     // text left pad inside stripe
   const STRIPE_X  = ML;    // stripe starts at left margin
   const STRIPE_W  = CW;    // stripe is full content width
 
-  /** Draw a single horizontal stripe (background + gold left bar) at current y for rowH mm. */
+  /** Draw a single horizontal stripe (background + gold left bar) at current y for rowH mm.
+   *  The rect and gold bar extend 0.4mm past rowH so adjacent stripes overlap slightly —
+   *  this eliminates the hairline white seam PDF viewers render between contiguous rects. */
+  const SEAM_OVERLAP = 0.4;
   const drawStripe = (rowH: number) => {
     doc.setFillColor(...LIGHT);
-    doc.rect(STRIPE_X, y, STRIPE_W, rowH, 'F');   // no top overlap — prevents next stripe from clipping descenders
+    doc.rect(STRIPE_X, y, STRIPE_W, rowH + SEAM_OVERLAP, 'F');
     doc.setDrawColor(...GOLD);
     doc.setLineWidth(0.5);
-    doc.line(STRIPE_X, y, STRIPE_X, y + rowH);
+    doc.line(STRIPE_X, y, STRIPE_X, y + rowH + SEAM_OVERLAP);
   };
 
   policyClauses.forEach((clause, clauseIdx) => {
@@ -706,7 +709,7 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
     doc.setFontSize(7);
     doc.setTextColor(...NAVY);
     doc.text(clause.heading, STRIPE_X + PAD_L, y + HEAD_H - 1.5);
-    y += HEAD_H;
+    y += HEAD_H;  // heading and body stripes are contiguous — no gap so gold bar and background are unbroken
 
     // ── Body lines — rendered from auto-wrapped output ──
     wrappedLines.forEach((line: string) => {
