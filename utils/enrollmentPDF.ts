@@ -611,107 +611,60 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
   //   • Gold left accent bar drawn per-line segment
   //   • Heading in NAVY bold 7pt, body in DARK normal 7.8pt
 
-  type PolicyClause = { heading: string; lines: string[] };
+  type PolicyClause = { heading: string; text: string };
 
   const policyClauses: PolicyClause[] = [
     {
       heading: 'DRE COURSE APPROVAL STATEMENT',
-      lines: [
-        'This course is approved for pre-license education credit by the California Department',
-        'of Real Estate. However, this approval does not constitute an endorsement of the views',
-        'or opinions expressed by the course sponsor, instructors, authors, or lecturers.',
-      ],
+      text: 'This course is approved for pre-license education credit by the California Department of Real Estate. However, this approval does not constitute an endorsement of the views or opinions expressed by the course sponsor, instructors, authors, or lecturers.',
     },
     {
       heading: "STUDENT'S RIGHT TO CANCEL",
-      lines: [
-        'The student has the right to cancel this enrollment agreement and obtain a refund',
-        'by providing written notice to Ameristar School, 120 S. Del Mar Ave, Unit 1143, San Gabriel, CA 91778.',
-      ],
+      text: 'The student has the right to cancel this enrollment agreement and obtain a refund by providing written notice to Ameristar School, 120 S. Del Mar Ave, Unit 1143, San Gabriel, CA 91778.',
     },
     {
       heading: 'REFUND POLICY',
-      lines: [
-        'Cancellation must be made within seven (7) business days of the enrollment date by',
-        'certified mail. All course materials must be returned. A $35.00 registration fee is',
-        'non-refundable. Once the seven-day period has passed, no refund will be issued.',
-        'No refunds are available after the student has passed any final examination for a course.',
-      ],
+      text: 'Cancellation must be made within seven (7) business days of the enrollment date by certified mail. All course materials must be returned. A $35.00 registration fee is non-refundable. Once the seven-day period has passed, no refund will be issued. No refunds are available after the student has passed any final examination for a course.',
     },
     {
       heading: 'STUDENT IDENTITY VERIFICATION',
-      lines: [
-        'Before each final examination, students must present valid government-issued photo ID',
-        'to the school-appointed proctor. The school sends exam materials directly to the proctor.',
-        'Students are never to handle exam materials directly.',
-      ],
+      text: 'Before each final examination, students must present valid government-issued photo ID to the school-appointed proctor. The school sends exam materials directly to the proctor. Students are never to handle exam materials directly.',
     },
     {
       heading: 'DELIVERY METHOD',
-      lines: [
-        'All pre-licensing and continuing education courses are non-contact, home self-study',
-        '(correspondence) programs. No classroom attendance is required.',
-      ],
+      text: 'All pre-licensing and continuing education courses are non-contact, home self-study (correspondence) programs. No classroom attendance is required.',
     },
     {
       heading: 'CA DRE STUDY PERIOD REQUIREMENT',
-      lines: [
-        'Per California DRE regulations, each course requires a minimum study period of 18',
-        "calendar days before the student is eligible to take that course's final examination.",
-        'No more than two courses may be completed within any five-week period.',
-      ],
+      text: "Per California DRE regulations, each course requires a minimum study period of 18 calendar days before the student is eligible to take that course's final examination. No more than two courses may be completed within any five-week period.",
     },
     {
       heading: 'COURSE & INSTRUCTOR EVALUATION (RE 318A)',
-      lines: [
-        'Students may evaluate their courses and instructors using DRE Form RE 318A,',
-        'available at www.dre.ca.gov.',
-      ],
+      text: 'Students may evaluate their courses and instructors using DRE Form RE 318A, available at www.dre.ca.gov.',
     },
     {
       heading: 'COURSE PROVIDER COMPLAINTS (RE 340)',
-      lines: [
-        'Unresolved complaints may be submitted to the DRE using Form RE 340,',
-        'available at www.dre.ca.gov.',
-      ],
+      text: 'Unresolved complaints may be submitted to the DRE using Form RE 340, available at www.dre.ca.gov.',
     },
     {
       heading: 'GOVERNING REGULATIONS (RE 307)',
-      lines: [
-        'Pre-license course regulations are set forth in DRE Regulation Excerpts (Form RE 307),',
-        'available at www.dre.ca.gov. By enrolling, the student acknowledges review opportunity.',
-      ],
+      text: 'Pre-license course regulations are set forth in DRE Regulation Excerpts (Form RE 307), available at www.dre.ca.gov. By enrolling, the student acknowledges review opportunity.',
     },
     {
       heading: 'TRANSFERABILITY OF CREDITS',
-      lines: [
-        'Transfer of credits is at the complete discretion of the receiving institution.',
-      ],
+      text: 'Transfer of credits is at the complete discretion of the receiving institution.',
     },
     {
       heading: 'STUDENT TUITION RECOVERY FUND (STRF)',
-      lines: [
-        "California's STRF fund protects students from economic loss due to institutional failure.",
-      ],
+      text: "California's STRF fund protects students from economic loss due to institutional failure.",
     },
     {
       heading: 'COURSE COMPLETION & EXAMINATIONS',
-      lines: [
-        'Completion requires reading all text materials and passing an open-book final exam for',
-        'each course. The minimum passing score is 70%. All exams must be taken under the',
-        'supervision of a school-appointed proctor. If a student does not pass on the first',
-        'attempt, they may retake the exam once within one year of enrollment. After two failed',
-        'attempts, the student may be required to repeat the course (additional fee may apply).',
-        'If the course is not completed within one year, a new enrollment will be required.',
-        'A Certificate of Completion will be issued within 7 business days of passing the exam.',
-        'The pass date is the official course completion date.',
-      ],
+      text: 'Completion requires reading all text materials and passing an open-book final exam for each course. The minimum passing score is 70%. All exams must be taken under the supervision of a school-appointed proctor. If a student does not pass on the first attempt, they may retake the exam once within one year of enrollment. After two failed attempts, the student may be required to repeat the course (additional fee may apply). If the course is not completed within one year, a new enrollment will be required. A Certificate of Completion will be issued within 7 business days of passing the exam. The pass date is the official course completion date.',
     },
     {
       heading: 'QUESTIONS & GRIEVANCES',
-      lines: [
-        'Bureau for Private Postsecondary Education (BPPE) · www.bppe.ca.gov · (916) 574-8900',
-      ],
+      text: 'Bureau for Private Postsecondary Education (BPPE) · www.bppe.ca.gov · (916) 574-8900',
     },
   ];
 
@@ -733,6 +686,12 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
   };
 
   policyClauses.forEach((clause, clauseIdx) => {
+    // ── Auto-wrap clause text to full content width ──
+    // Set font before splitTextToSize so jsPDF measures character widths correctly.
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.8);
+    const wrappedLines: string[] = doc.splitTextToSize(clause.text, CW - PAD_L);
+
     // ── Heading row ──
     // Check if heading + at least 1 body line fits; if not, break page first.
     const minNeeded = HEAD_H + LINE_H + 2;
@@ -749,8 +708,8 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
     doc.text(clause.heading, STRIPE_X + PAD_L, y + HEAD_H - 1.5);
     y += HEAD_H;
 
-    // ── Body lines ──
-    clause.lines.forEach(line => {
+    // ── Body lines — rendered from auto-wrapped output ──
+    wrappedLines.forEach((line: string) => {
       if (y + LINE_H > PH - 20) {
         doc.addPage();
         pageNum.n++;
@@ -760,7 +719,7 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.8);
       doc.setTextColor(...DARK);
-      doc.text(line, STRIPE_X + PAD_L, y + LINE_H - 2.0);  // baseline raised to give descenders clearance below
+      doc.text(line, STRIPE_X + PAD_L, y + 2.5);  // absolute position near top of stripe — safe for descenders regardless of jsPDF y-coordinate convention
       y += LINE_H;
     });
 
