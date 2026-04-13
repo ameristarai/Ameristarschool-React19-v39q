@@ -360,7 +360,7 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
   doc.text(`Date of Application: ${fmtDate(data.date)}`, PW / 2, y, { align: 'center' });
   y += 5;
   doc.setFontSize(7.5);
-  doc.text('DRE Pre-License Sponsor #: [SPONSOR NUMBER]  ·  CE Sponsor #: [CE SPONSOR NUMBER]', PW / 2, y, { align: 'center' });
+  doc.text('DRE Sponsor #: S0684', PW / 2, y, { align: 'center' });
   y += 8;
 
   // Gold accent rule
