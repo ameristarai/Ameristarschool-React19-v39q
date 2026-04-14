@@ -199,7 +199,7 @@ export function generateEnrollmentPDF(data: PDFFormData, totals: PDFTotals): jsP
     doc.setFontSize(7);
     doc.setTextColor(...MID);
 
-    doc.text('Ameristar School  ·  Los Angeles, CA  ·  (310) 377-0337  ·  (626) 308-0150  ·  ameristarschool@yahoo.com', ML, PH - 9);
+    doc.text('www.ameristarschool.com  ·  Los Angeles, CA  ·  Orange County, CA  ·  (310) 377-0337  ·  (626) 308-0150  ·  ameristarschool@yahoo.com', ML, PH - 9);
     doc.text(`Page ${pageNum} of ${totalPages}`, PW - MR, PH - 9, { align: 'right' });
     doc.text('Bureau for Private Postsecondary Education (BPPE) Approved Provider', ML, PH - 5);
   };
