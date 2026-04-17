@@ -60,12 +60,27 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
   });
 
   const [phoneError, setPhoneError]     = useState<string | null>(null);
+  const [emailError, setEmailError]     = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted]       = useState(false);
   const [submitError, setSubmitError]   = useState<string | null>(null);
   // Tracks email delivery failure separately from PDF success
   const [emailWarning, setEmailWarning] = useState<boolean>(false);
+
+  // ── Turnstile state ──────────────────────────────────────────────────────
+  // turnstileRendered: true once Cloudflare script has mounted the widget DIV
+  //   (independent of whether a challenge is actually presented to this user)
+  // turnstileChallengeShown: true once the widget requires user interaction —
+  //   set by tracking DOM changes inside the widget container. Used to decide
+  //   whether the "Complete the human verification" hint should be shown.
+  // turnstileToken: non-null only after the user successfully completes the
+  //   challenge (or Cloudflare silently issues a token for trusted users).
+  // turnstileError: set when verification fails or token expires.
+  const [turnstileRendered, setTurnstileRendered]           = useState<boolean>(false);
+  const [turnstileChallengeShown, setTurnstileChallengeShown] = useState<boolean>(false);
+  const [turnstileToken, setTurnstileToken]                 = useState<string | null>(null);
+  const [turnstileError, setTurnstileError]                 = useState<string | null>(null);
 
   // ── Cloudflare Turnstile ──────────────────────────────────────────────────
   // turnstileRef holds the container div. widgetId lets us call reset() on
@@ -81,7 +96,11 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
 
   useEffect(() => {
     // Render the Turnstile widget once the component mounts and the
-    // Cloudflare script has loaded. The widget is invisible to real users.
+    // Cloudflare script has loaded.
+    // Mode: 'interaction-only' → Cloudflare decides per-user whether to show
+    // the checkbox. Trusted users get a silent token via `callback`; suspicious
+    // users see the checkbox and must complete it. Either way, the submit
+    // button is gated on a real, Cloudflare-issued token.
     const renderWidget = () => {
       if (
         turnstileRef.current &&
@@ -92,8 +111,42 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
         widgetIdRef.current = (window as any).turnstile.render(turnstileRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
           appearance: 'interaction-only',
-	  execution: 'render',
+          // Called when a token is successfully issued (silent for trusted users,
+          // after checkbox completion for challenged users)
+          callback: (token: string) => {
+            setTurnstileToken(token);
+            setTurnstileError(null);
+          },
+          // Called when verification fails
+          'error-callback': () => {
+            setTurnstileToken(null);
+            setTurnstileError('Verification failed. Please try the checkbox again.');
+          },
+          // Called when the issued token expires (~300 seconds)
+          'expired-callback': () => {
+            setTurnstileToken(null);
+            setTurnstileError('Verification expired. Please complete the checkbox again.');
+            // Auto-reset so the user can re-attempt without refreshing the page
+            if (widgetIdRef.current !== null && (window as any).turnstile) {
+              (window as any).turnstile.reset(widgetIdRef.current);
+            }
+          },
         });
+        setTurnstileRendered(true);
+
+        // Detect whether Cloudflare chooses to present a challenge for this
+        // user. 'interaction-only' mode injects an iframe into the container
+        // only when a visible challenge is needed; silent users get a token
+        // via the callback with no iframe appearing. We watch for that iframe
+        // to decide whether to show the "Complete the human verification" hint.
+        const observer = new MutationObserver(() => {
+          if (turnstileRef.current?.querySelector('iframe')) {
+            setTurnstileChallengeShown(true);
+          }
+        });
+        if (turnstileRef.current) {
+          observer.observe(turnstileRef.current, { childList: true, subtree: true });
+        }
       }
     };
 
@@ -161,27 +214,61 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Phone: 10-digit enforcement + auto-format to (xxx) xxx-xxxx
+  // Task 4: Email — validate on blur so the user gets feedback as soon as
+  // they leave the field, without being nagged while typing. Also clear any
+  // existing error as soon as the user resumes typing, so the red state
+  // disappears the moment they start correcting.
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setFormData(prev => ({ ...prev, email: val }));
+    if (emailError) setEmailError(null);
+  };
+
+  const handleEmailBlur = () => {
+    const val = formData.email.trim();
+    if (val.length === 0) {
+      setEmailError(null);  // empty is handled by the submit-hint at the bottom
+    } else if (!EMAIL_PATTERN.test(val)) {
+      setEmailError('Please enter a valid email address (e.g. name@example.com)');
+    } else {
+      setEmailError(null);
+    }
+  };
+
+  // Phone: progressive formatting as the user types
+  //   1–3 digits → "xxx"          (user still typing area code)
+  //   4–6 digits → "(xxx) xxx"    (close area code, show separator)
+  //   7–10 digits → "(xxx) xxx-xxxx"
+  // Input exceeding 10 digits is truncated (not cleared) so the user keeps
+  // their existing data and can backspace/correct without starting over.
+  const formatPhone = (digits: string): string => {
+    const len = digits.length;
+    if (len === 0) return '';
+    if (len <= 3)  return digits;
+    if (len <= 6)  return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+  };
+
   const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
+    // If the user typed letters, warn but keep whatever they had so far
     if (/[a-zA-Z]/.test(val)) {
       setPhoneError('Please enter numbers only');
-      setFormData(prev => ({ ...prev, phone: val }));
+      const digitsOnly = val.replace(/\D/g, '').slice(0, 10);
+      setFormData(prev => ({ ...prev, phone: formatPhone(digitsOnly) }));
       return;
     }
-    const digits = val.replace(/\D/g, '');
-    if (digits.length > 10) {
-      setPhoneError('Please enter exactly 10 digits');
-      setFormData(prev => ({ ...prev, phone: val }));
-      return;
-    }
-    setPhoneError(null);
-    if (digits.length === 10) {
-      const formatted = `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
-      setFormData(prev => ({ ...prev, phone: formatted }));
+    const rawDigits = val.replace(/\D/g, '');
+    // If they pasted or typed more than 10 digits, truncate — don't block or clear
+    const digits = rawDigits.slice(0, 10);
+    if (rawDigits.length > 10) {
+      setPhoneError('Only 10 digits allowed — extra digits were removed');
     } else {
-      setFormData(prev => ({ ...prev, phone: val }));
+      setPhoneError(null);
     }
+    setFormData(prev => ({ ...prev, phone: formatPhone(digits) }));
   };
 
   const handlePhoneBlur = () => {
@@ -191,11 +278,11 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
     }
   };
 
+  // Task 6: No longer clears the field on click — user can correct in place.
   const handlePhoneClick = () => {
-    if (phoneError) {
-      setFormData(prev => ({ ...prev, phone: '' }));
-      setPhoneError(null);
-    }
+    // Intentionally no-op: previously cleared the field on click when there
+    // was an error, which forced users to start over. Retained as a named
+    // handler so the JSX onClick binding continues to compile cleanly.
   };
 
   // Address: min 3 alphanumeric chars, no PO Box
@@ -229,13 +316,25 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
   const phoneDigits  = formData.phone.replace(/\D/g, '');
   const phoneIsValid = phoneDigits.length === 10 && !phoneError;
 
-  const emailIsValid = formData.email.trim() !== '' && formData.email.includes('@');
+  // Email validation now uses the same strict regex as handleEmailBlur so
+  // that the submit-hint list and the submit-gate stay consistent.
+  const emailIsValid = EMAIL_PATTERN.test(formData.email.trim()) && !emailError;
 
   const addressIsValid =
     formData.address.trim().length > 0 &&
     formData.address.replace(/[^a-zA-Z0-9]/g, '').length >= 3 &&
     !PO_BOX_PATTERN.test(formData.address) &&
     !addressError;
+
+  // Task 2: Turnstile gate — only required when Cloudflare actually showed a
+  // challenge to this user. Silent-pass users (Cloudflare deemed trusted)
+  // receive a token via the `callback` without ever seeing the checkbox, so
+  // `turnstileToken` becomes non-null automatically and this check passes.
+  // If the widget fails to render entirely (e.g. script blocked), we do NOT
+  // gate on it — the server still validates the (missing) token gracefully.
+  const turnstileOk = !turnstileRendered         // widget never loaded → don't gate
+                   || !turnstileChallengeShown   // silent pass user → no gate needed (token arrives via callback)
+                   || turnstileToken !== null;   // challenged user → must have a token
 
   const isSubmitEnabled =
     formData.fullName.trim()        !== '' &&
@@ -245,7 +344,8 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
     formData.selectedCourses.length  > 0  &&
     formData.paymentMethod          !== '' &&
     formData.agreedToTerms                 &&
-    formData.signature.trim()       !== '';
+    formData.signature.trim()       !== '' &&
+    turnstileOk;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -316,12 +416,10 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
           fileName,
           studentName: formData.fullName,
           studentEmail: formData.email || '',
-          // Turnstile token — the backend verifies this server-side.
-          // Empty string when TURNSTILE_SITE_KEY is still a placeholder
-          // (backend skips verification if TURNSTILE_SECRET_KEY is not set).
-          turnstileToken: (widgetIdRef.current !== null && (window as any).turnstile)
-            ? (window as any).turnstile.getResponse(widgetIdRef.current)
-            : '',
+          // Turnstile token — sourced from React state set by the widget's
+          // success callback. This guarantees we send the same token the user
+          // actually verified with (getResponse() is racy if the token refreshed).
+          turnstileToken: turnstileToken || '',
         }),
       });
 
@@ -461,10 +559,19 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
                 </label>
                 <input
                   type="email" name="email" required
-                  value={formData.email} onChange={handleInputChange}
-                  className="w-full bg-gray-50 border-b border-gray-200 p-3 focus:outline-hidden focus:border-champagne transition-colors"
+                  value={formData.email}
+                  onChange={handleEmailChange}
+                  onBlur={handleEmailBlur}
+                  className={`w-full bg-gray-50 border-b p-3 focus:outline-hidden transition-colors ${
+                    emailError
+                      ? 'border-red-400 text-red-600 focus:border-red-400'
+                      : 'border-gray-200 focus:border-champagne'
+                  }`}
                   placeholder="email@example.com"
                 />
+                {emailError && (
+                  <p className="text-red-500 text-xs mt-2 animate-fade-in font-medium">{emailError}</p>
+                )}
               </div>
 
               {/* Phone — REQUIRED, 10-digit enforced */}
@@ -871,6 +978,13 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
           />
           <div ref={turnstileRef} />
 
+          {/* Turnstile error message — shown when verification fails or expires */}
+          {turnstileError && (
+            <div className="w-full p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 animate-fade-in text-center">
+              {turnstileError}
+            </div>
+          )}
+
           {/* Submit bar */}
           <div className="flex flex-col items-center gap-4 pt-4">
 
@@ -928,6 +1042,13 @@ const Enrollment = ({ onNavigate }: EnrollmentProps) => {
                 {!formData.signature.trim() && (
                   <p className="flex items-center gap-1 justify-center">
                     <AlertCircle size={14} /> Provide your signature
+                  </p>
+                )}
+                {/* Task 3: Turnstile hint — only shows if Cloudflare chose to
+                    present a challenge AND the user has not yet completed it. */}
+                {turnstileRendered && turnstileChallengeShown && turnstileToken === null && (
+                  <p className="flex items-center gap-1 justify-center">
+                    <AlertCircle size={14} /> Complete the human verification
                   </p>
                 )}
               </div>
